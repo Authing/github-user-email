@@ -4,8 +4,22 @@ const { parse } = require('json2csv');
 
 let total_page = 100;
 let page = 1;
-let accessToken = '7e255c0f17373a406118a89589ee6ef7d521ceff'; //若不可用请更新这里
+let accessToken = 'd3062a23d6cc777ccf6b1894591cf2280cf639bb'; //若不可用请更新这里
 let fullData = [];
+let waitTime = 0;
+
+let oldFile = fs.readFileSync('./GitHub-Chinese-Users.json', 'utf8');
+let oldArr = JSON.parse('[' + oldFile.slice(0, oldFile.length - 2) + ']');
+if(oldArr.length > 0) {
+    fullData = oldArr;
+}
+if(oldFile) {
+    let lastPage = oldFile.split(`"id"`).length - 1;
+    if(lastPage > 0) {
+        page = parseInt(lastPage / 29) + 1; 
+        console.log('断点续传: 从第 ' + page + ' 页开始');
+    }
+}
 
 async function getUsers() {
     return new Promise(resolve => {
@@ -19,7 +33,8 @@ async function getUsers() {
             }
         }, async (error, response, body) => {
             let data = JSON.parse(body);
-            total_page = parseInt(data.total_count / 29) || 100;
+            total_page = parseInt(data.total_count / 29) + 1 || 100;
+            console.log('共' + total_page + '页');
 
             for (var i = 0; i < data.items.length; i++) {
                 console.log('正在获取第 ' + (i + 1) + ' 个用户');
@@ -62,6 +77,7 @@ async function getUsers() {
 
 async function getEmail(name) {
     return new Promise(resolve => {
+        waitTime = 0;
         request.get({
             url: `https://api.github.com/users/${name}/events?access_token=${accessToken}`,
             headers: {
@@ -75,7 +91,15 @@ async function getEmail(name) {
     })
 }
 
+
+
 (async () => {
+    setTimeout(() => {
+        waitTime = waitTime + 1000;
+        if (waitTime >= 10000) {
+            throw 'stop';
+        }
+    }, 1000);
     for (; page < total_page;) {
         await getUsers();
     }
