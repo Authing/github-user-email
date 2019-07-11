@@ -1,8 +1,10 @@
 const request = require('request');
 const fs = require('fs');
+const { parse } = require('json2csv');
+
 let total_page = 100;
 let page = 1;
-let accessToken = '7175b07ea09b90e85a834e53218dbda6698e71d7';
+let accessToken = '7e255c0f17373a406118a89589ee6ef7d521ceff'; //若不可用请更新这里
 let fullData = [];
 
 async function getUsers() {
@@ -38,7 +40,15 @@ async function getUsers() {
                         nickname: data.items[i].login,
                         avatar: data.items[i].avatar_url
                     }
-                    fs.appendFileSync('./logs.txt', JSON.stringify(opt) + ',\n');
+                    fullData.push(opt);
+                    var fuck = parse(
+                        fullData, {
+                            fields: [
+                                'id', 'email', 'nickname', 'avatar'
+                            ]
+                        });
+                    fs.writeFileSync('./GitHub-Chinese-Users.csv', fuck);
+                    fs.appendFileSync('./GitHub-Chinese-Users.json', JSON.stringify(opt) + ',\n');
                 }
             }
             if (page < total_page) {
@@ -66,7 +76,7 @@ async function getEmail(name) {
 }
 
 (async () => {
-    for( ;page < total_page; ) {
+    for (; page < total_page;) {
         await getUsers();
     }
 })()
